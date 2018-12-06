@@ -7,6 +7,32 @@
 #include <stdnoreturn.h>
 #include <string.h>
 
+typedef struct {
+    void **data;
+    int capacity;
+    int len;
+} Vector;
+
+Vector *new_vec()
+{
+    Vector *v = malloc(sizeof(Vector));
+    // The size of a void pointer depends on platform.
+    v->data = malloc(sizeof(void *) * 16);
+    v->capacity = 16;
+    v->len = 0;
+    return v;
+}
+
+void vec_push(Vector *v, void *elem)
+{
+    if (v->len == v->capacity) {
+        v->capacity *= 2;
+        v->data = realloc(v->data, sizeof(void *) * v->capacity);
+    }
+
+    v->data[v->len++] = elem;
+}
+
 enum {
     TK_NUM = 256,
     TK_EOF,
@@ -18,10 +44,19 @@ typedef struct {
     char *asString;
 } Token;
 
-Token tokens[100];
-
-void tokenize(char *p)
+Token *add_token(Vector *v, int type, char *asString)
 {
+    Token *t = malloc(sizeof(Token));
+    t->type = type;
+    t->asString = asString;
+    vec_push(v, t);
+    return t;
+}
+
+Vector *tokenize(char *p)
+{
+    Vector *v = new_vec();
+
     int i = 0;
     while (*p) {
         if (isspace(*p)) {
@@ -30,17 +65,15 @@ void tokenize(char *p)
         }
 
         if (*p == '+' || *p == '-') {
-            tokens[i].type = *p;
-            tokens[i].asString = p;
+            add_token(v, *p, p);
             i++;
             p++;
             continue;
         }
 
         if (isdigit(*p)) {
-            tokens[i].type = TK_NUM;
-            tokens[i].asString = p;
-            tokens[i].value = strtol(p, &p, 10);
+            Token *t = add_token(v, TK_NUM, p);
+            t->value = strtol(p, &p, 10);
             i++;
             continue;
         }
@@ -49,7 +82,8 @@ void tokenize(char *p)
         exit(1);
     }
 
-    tokens[i].type = TK_EOF;
+    add_token(v, TK_EOF, p);
+    return v;
 }
 
 int pos = 0;
@@ -64,6 +98,9 @@ typedef struct Node {
     struct Node *right;
     int value;
 } Node;
+
+Vector *tokens;
+int pos;
 
 Node *new_node(int op, Node *left, Node *right)
 {
@@ -92,19 +129,22 @@ noreturn void error(char *fmt, ...) {
 
 Node *number()
 {
-    if (tokens[pos].type == TK_NUM) {
-        return new_node_num(tokens[pos++].value);
+    Token *t = tokens->data[pos];
+    if (t->type != TK_NUM) {
+        error("Number expected, but got %s", t->asString);
+        return NULL;
     }
 
-    error("Number expected, but got %s", tokens[pos].asString);
-    return NULL;
+    pos++;
+    return new_node_num(t->value);
 }
 
 Node *expr()
 {
     Node *left = number();
     for (;;) {
-        int op = tokens[pos].type;
+        Token *t = tokens->data[pos];
+        int op = t->type;
         if (op != '+' && op != '-') {
             break;
         }
@@ -113,8 +153,9 @@ Node *expr()
         left = new_node(op, left, number());
     }
 
-    if (tokens[pos].type != TK_EOF) {
-        error("stray token: %s", tokens[pos].asString);
+    Token *t = tokens->data[pos];
+    if (t->type != TK_EOF) {
+        error("stray token: %s %d %d", t->asString, t->type, t->value);
     }
 
     return left;
@@ -143,37 +184,38 @@ IR *new_ir(int op, int left, int right)
     return ir;
 }
 
-IR *ins[1000];
-int inp;
-int regno;
 
-int gen_ir_sub(Node *node)
+int gen_ir_sub(Vector *v, Node *node)
 {
+    static int regno;
+
     if (node->type == ND_NUM) {
         int r = regno++;
-        ins[inp++] = new_ir(IR_IMM, r, node->value);
+        vec_push(v, new_ir(IR_IMM, r, node->value));
         return r;
     }
 
     assert(node->type == '+' || node->type == '-');
 
-    int left = gen_ir_sub(node->left);
-    int right = gen_ir_sub(node->right);
+    int left = gen_ir_sub(v, node->left);
+    int right = gen_ir_sub(v, node->right);
 
-    ins[inp++] = new_ir(node->type, left, right);
-    ins[inp++] = new_ir(IR_KILL, right, 0);
+    vec_push(v, new_ir(node->type, left, right));
+    vec_push(v, new_ir(IR_KILL, right, 0));
     return left;
 }
 
-void gen_ir(Node *node)
+Vector *gen_ir(Node *node)
 {
-    int r = gen_ir_sub(node);
-    ins[inp++] = new_ir(IR_RETURN, r, 0);
+    Vector *v = new_vec();
+    int r = gen_ir_sub(v, node);
+    vec_push(v, new_ir(IR_RETURN, r, 0));
+    return v;
 }
 
 char *regs[] = {"rdi", "rsi", "r10", "r11", "r12", "r13", "r14", "r15", NULL};
-bool used[8];
-int reg_map[1000];
+bool used[sizeof(regs) / sizeof(*regs)];
+int *reg_map;
 
 int alloc(int ir_reg)
 {
@@ -200,10 +242,15 @@ void kill(int r) {
     used[r] = false;
 }
 
-void alloc_regs()
+void alloc_regs(Vector *irv)
 {
-    for (int i=0; i<inp; i++) {
-        IR *ir = ins[i];
+    reg_map = malloc(sizeof(int) * irv->len);
+    for (int i=0; i<irv->len; i++) {
+        reg_map[i] = -1;
+    }
+
+    for (int i=0; i<irv->len; i++) {
+        IR *ir = irv->data[i];
 
         switch (ir->op) {
             case IR_IMM:
@@ -228,10 +275,10 @@ void alloc_regs()
     }
 }
 
-void gen_x86()
+void gen_x86(Vector *irv)
 {
-    for (int i=0; i<inp; i++) {
-        IR *ir = ins[i];
+    for (int i=0; i<irv->len; i++) {
+        IR *ir = irv->data[i];
 
         switch (ir->op) {
             case IR_IMM:
@@ -266,20 +313,20 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    for (int i=0; i<sizeof(reg_map) / sizeof(*reg_map); i++) {
-        reg_map[i] = -1;
+    tokens = tokenize(argv[1]);
+    for (int i=0; i<tokens->len; i++) {
+        Token *t = tokens->data[i];
     }
 
-    tokenize(argv[1]);
     Node *node = expr();
 
-    gen_ir(node);
-    alloc_regs();
+    Vector *irv = gen_ir(node);
+    alloc_regs(irv);
 
     printf(".intel_syntax noprefix\n");
     printf(".global _main\n");
     printf("_main:\n");
-    gen_x86();
+    gen_x86(irv);
 
     return 0;
 }
