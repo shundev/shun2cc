@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <ctype.h>
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -118,36 +119,144 @@ Node *expr()
     return left;
 }
 
-char *regs[] = {"rdi", "rsi", "r10", "r11", "r12", "r13", "r14", "r15", NULL};
+enum {
+    IR_IMM,
+    IR_MOV,
+    IR_RETURN,
+    IR_KILL,
+    IR_NOP,
+};
 
-int cur;
+typedef struct {
+    int op;
+    int left;
+    int right;
+} IR;
 
-char *gen(Node *node) {
+IR *new_ir(int op, int left, int right)
+{
+    IR *ir = malloc(sizeof(IR));
+    ir->op = op;
+    ir->left = left;
+    ir->right = right;
+    return ir;
+}
+
+IR *ins[1000];
+int inp;
+int regno;
+
+int gen_ir_sub(Node *node)
+{
     if (node->type == ND_NUM) {
-        char *reg = regs[cur++];
-        if (!reg) {
-            error("Register exhausted");
-        }
-
-        printf("  MOV %s, %d\n", reg, node->value);
-        return reg;
+        int r = regno++;
+        ins[inp++] = new_ir(IR_IMM, r, node->value);
+        return r;
     }
 
-    char *dst = gen(node->left);
-    char *src = gen(node->right);
+    assert(node->type == '+' || node->type == '-');
 
-    switch (node->type) {
-        case '+':
-            printf("  ADD %s, %s\n", dst, src);
-            return dst;
-        case '-':
-            printf("  SUB %s, %s\n", dst, src);
-            return dst;
-        default:
-            assert(0 && "unknown operator");
-            break;
+    int left = gen_ir_sub(node->left);
+    int right = gen_ir_sub(node->right);
+
+    ins[inp++] = new_ir(node->type, left, right);
+    ins[inp++] = new_ir(IR_KILL, right, 0);
+    return left;
+}
+
+int gen_ir(Node *node)
+{
+    int r = gen_ir_sub(node);
+    ins[inp++] = new_ir(IR_RETURN, r, 0);
+}
+
+char *regs[] = {"rdi", "rsi", "r10", "r11", "r12", "r13", "r14", "r15", NULL};
+bool used[8];
+int reg_map[1000];
+
+int alloc(int ir_reg)
+{
+    if (reg_map[ir_reg] != -1) {
+        int r = reg_map[ir_reg];
+        assert(used[r]);
+        return r;
+    }
+
+    for (int i=0; i<sizeof(regs) / sizeof(*regs); i++) {
+        if (used[i]) {
+            continue;
+        }
+        used[i] = true;
+        reg_map[ir_reg] = i;
+        return i;
+    }
+
+    error("Register exhausted.");
+}
+
+void kill(int r) {
+    assert(used[r]);
+    used[r] = false;
+}
+
+void alloc_regs()
+{
+    for (int i=0; i<inp; i++) {
+        IR *ir = ins[i];
+
+        switch (ir->op) {
+            case IR_IMM:
+                ir->left = alloc(ir->left);
+                break;
+            case IR_MOV:
+            case '+':
+            case '-':
+                ir->left = alloc(ir->left);
+                ir->right = alloc(ir->right);
+                break;
+            case IR_RETURN:
+                kill(reg_map[ir->left]);
+                break;
+            case IR_KILL:
+                kill(reg_map[ir->left]);
+                ir->op = IR_NOP;
+                break;
+            default:
+                assert(0 && "unknown operator");
+        }
     }
 }
+
+void gen_x86()
+{
+    for (int i=0; i<inp; i++) {
+        IR *ir = ins[i];
+
+        switch (ir->op) {
+            case IR_IMM:
+                printf("  MOV %s, %d\n", regs[ir->left], ir->right);
+                break;
+            case IR_MOV:
+                printf("  MOV %s, %s\n", regs[ir->left], regs[ir->right]);
+                break;
+            case IR_RETURN:
+                printf("  MOV rax, %s\n", regs[ir->left]);
+                printf("  RET\n");
+                break;
+            case '+':
+                printf("  ADD %s, %s\n", regs[ir->left], regs[ir->right]);
+                break;
+            case '-':
+                printf("  SUB %s, %s\n", regs[ir->left], regs[ir->right]);
+                break;
+            case IR_NOP:
+                break;
+            default:
+                assert(0 && "unknown operator");
+        }
+    }
+}
+
 
 int main(int argc, char **argv)
 {
@@ -156,13 +265,20 @@ int main(int argc, char **argv)
         return 1;
     }
 
+    for (int i=0; i<sizeof(reg_map) / sizeof(*reg_map); i++) {
+        reg_map[i] = -1;
+    }
+
     tokenize(argv[1]);
     Node *node = expr();
+
+    gen_ir(node);
+    alloc_regs();
 
     printf(".intel_syntax noprefix\n");
     printf(".global _main\n");
     printf("_main:\n");
-    printf("  MOV rax, %s\n", gen(node));
-    printf("  RET\n");
+    gen_x86();
+
     return 0;
 }
