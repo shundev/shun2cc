@@ -19,7 +19,7 @@ static int gen(Vector *v, Node *node)
         return r;
     }
 
-    assert(strchr("+-*", node->type));
+    assert(strchr("+-*/", node->type));
 
     int left = gen(v, node->left);
     int right = gen(v, node->right);

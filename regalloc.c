@@ -47,6 +47,7 @@ void alloc_regs(Vector *irv)
             case '+':
             case '-':
             case '*':
+            case '/':
                 ir->left = alloc(ir->left);
                 ir->right = alloc(ir->right);
                 break;

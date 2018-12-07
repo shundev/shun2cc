@@ -27,6 +27,13 @@ void gen_x86(Vector *irv)
                 printf("  MUL %s\n", regs[ir->left]);
                 printf("  MOV %s, rax\n", regs[ir->left]);
                 break;
+            case '/':
+                printf("  MOV rax, %s\n", regs[ir->left]);
+                // とりあえず除算の前に実行するらしい。符号拡張とは？
+                printf("  CQO\n");
+                printf("  DIV %s\n", regs[ir->right]);
+                printf("  MOV %s, rax\n", regs[ir->left]);
+                break;
             case IR_NOP:
                 break;
             default:
