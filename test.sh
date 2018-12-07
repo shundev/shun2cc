@@ -15,6 +15,8 @@ try () {
     fi
 }
 
+./shun2cc -test
+
 try 0 'return 0;'
 try 42 'return 42;'
 try 21 'return 5+20-4;'
