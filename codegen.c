@@ -69,7 +69,6 @@ void gen_x86(Vector *irv)
 
     printf("%s:\n", ret);
     printf("  MOV rsp, rbp\n");
-    printf("  MOV rsp, rbp\n");
     printf("  POP rbp\n");
     printf("  RET\n");
 }
