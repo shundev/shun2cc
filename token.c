@@ -15,7 +15,6 @@ static Vector *scan(char *p)
 {
     Vector *v = new_vec();
 
-    int i = 0;
     while (*p) {
         if (isspace(*p)) {
             p++;
@@ -24,7 +23,6 @@ static Vector *scan(char *p)
 
         if (strchr("+-*/;", *p)) {
             add_token(v, *p, p);
-            i++;
             p++;
             continue;
         }
@@ -42,7 +40,6 @@ static Vector *scan(char *p)
             }
 
             add_token(v, type, p);
-            i++;
             p += len;
             continue;
         }
@@ -50,7 +47,6 @@ static Vector *scan(char *p)
         if (isdigit(*p)) {
             Token *t = add_token(v, TK_NUM, p);
             t->value = strtol(p, &p, 10);
-            i++;
             continue;
         }
 
