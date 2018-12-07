@@ -7,8 +7,10 @@ try () {
     ./tmp
     actual="$?"
 
-    if [ "$actual" != "$expected" ]; then
-        echo "$input expected, but got $actual"
+    if [ "$actual" == "$expected" ]; then
+        echo "$input => $actual"
+    else
+        echo "$expected expected, but got $actual"
         exit 1
     fi
 }
@@ -19,5 +21,9 @@ try 21 '5+20-4'
 try 255 '5-6'
 try 41 ' 12 + 34 - 5'
 try 153 '1+2+3+4+5+6+7+8+9+10+11+12+13+14+15+16+17'
+
+try 10 '2*3+4'
+try 14 '2+3*4'
+try 26 '2*3+4*5'
 
 echo OK

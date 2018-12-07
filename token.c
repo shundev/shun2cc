@@ -20,7 +20,7 @@ Vector *tokenize(char *p)
             continue;
         }
 
-        if (*p == '+' || *p == '-') {
+        if (strchr("+-*", *p)) {
             add_token(v, *p, p);
             i++;
             p++;

@@ -3,7 +3,7 @@
 static Vector *tokens;
 static int pos;
 
-Node *new_node(int op, Node *left, Node *right)
+static Node *new_node(int op, Node *left, Node *right)
 {
     Node *node = malloc(sizeof(Node));
     node->type = op;
@@ -12,7 +12,7 @@ Node *new_node(int op, Node *left, Node *right)
     return node;
 }
 
-Node *new_node_num(int value)
+static Node *new_node_num(int value)
 {
     Node *node = malloc(sizeof(Node));
     node->type = ND_NUM;
@@ -20,7 +20,7 @@ Node *new_node_num(int value)
     return node;
 }
 
-Node *number()
+static Node *number()
 {
     Token *t = tokens->data[pos];
     if (t->type != TK_NUM) {
@@ -32,30 +32,50 @@ Node *number()
     return new_node_num(t->value);
 }
 
-Node *expr()
+
+static Node *mul()
 {
     Node *left = number();
     for (;;) {
         Token *t = tokens->data[pos];
         int op = t->type;
-        if (op != '+' && op != '-') {
-            break;
+        if (op != '*' && op != '/') {
+            return left;
         }
 
         pos++;
         left = new_node(op, left, number());
     }
-
-    Token *t = tokens->data[pos];
-    if (t->type != TK_EOF) {
-        error("stray token: %s %d %d", t->asString, t->type, t->value);
-    }
-
-    return left;
 }
+
+
+static Node *expr()
+{
+    Node *left = mul();
+    for (;;) {
+        Token *t = tokens->data[pos];
+        int op = t->type;
+
+        if (op != '+' && op != '-') {
+            return left;
+        }
+
+        pos++;
+        left = new_node(op, left, mul());
+    }
+}
+
 
 Node *parse(Vector *v) {
     tokens = v;
     pos = 0;
-    return expr();
+
+    Node *node = expr();
+
+    Token *t = tokens->data[pos];
+    if (t->type != TK_EOF) {
+        error("stray token: %s", t->asString);
+    }
+
+    return node;
 }
