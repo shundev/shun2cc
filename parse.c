@@ -17,6 +17,17 @@ static void expect(int type)
     pos++;
 }
 
+static bool consume(int type)
+{
+    Token *t = tokens->data[pos];
+    if (t->type != type) {
+        return false;
+    }
+
+    pos++;
+    return true;
+}
+
 static Node *new_node(int op, Node *left, Node *right)
 {
     Node *node = malloc(sizeof(Node));
@@ -26,26 +37,30 @@ static Node *new_node(int op, Node *left, Node *right)
     return node;
 }
 
-static Node *number()
+static Node *term()
 {
-    Token *t = tokens->data[pos];
-    if (t->type != TK_NUM) {
-        error("Number expected, but got %s", t->asString);
-        return NULL;
+    Node *node = malloc(sizeof(Node));
+    Token *t = tokens->data[pos++];
+
+    if (t->type == TK_NUM) {
+        node->type = ND_NUM;
+        node->value = t->value;
+        return node;
     }
 
-    pos++;
+    if (t->type == TK_IDENT) {
+        node->type = ND_IDENT;
+        node->name = t->name;
+        return node;
+    }
 
-    Node *node = malloc(sizeof(Node));
-    node->type = ND_NUM;
-    node->value = t->value;
-    return node;
+    error("Number expected, but got %s", t->asString);
 }
 
 
 static Node *mul()
 {
-    Node *left = number();
+    Node *left = term();
     for (;;) {
         Token *t = tokens->data[pos];
         int op = t->type;
@@ -54,7 +69,7 @@ static Node *mul()
         }
 
         pos++;
-        left = new_node(op, left, number());
+        left = new_node(op, left, term());
     }
 }
 
@@ -75,6 +90,17 @@ static Node *expr()
 }
 
 
+static Node *assign()
+{
+    Node *left = expr();
+    if (consume('=')) {
+        return new_node('=', left, expr());
+    }
+
+    return left;
+}
+
+
 static Node *stmt()
 {
     Node *node = malloc(sizeof(Node));
@@ -92,10 +118,10 @@ static Node *stmt()
         if (t->type == TK_RETURN) {
             pos++;
             e->type = ND_RETURN;
-            e->expr = expr();
+            e->expr = assign();
         } else {
             e->type = ND_EXPR_STMT;
-            e->expr = expr();
+            e->expr = assign();
         }
 
         vec_push(node->stmts, e);

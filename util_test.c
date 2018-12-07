@@ -40,7 +40,7 @@ static void map_test()
     expect(__LINE__, 6, (intptr_t)map_get(map, "foo"));
 
     expect(__LINE__, true, map_exists(map, "foo"));
-    expect(__LINE__, true, map_exists(map, "baz"));
+    expect(__LINE__, false, map_exists(map, "baz"));
 
 
 }

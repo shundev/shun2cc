@@ -34,6 +34,7 @@ void util_test();
 
 enum {
     TK_NUM = 256,
+    TK_IDENT,
     TK_RETURN,
     TK_EOF,
 };
@@ -41,6 +42,7 @@ enum {
 typedef struct {
     int type;
     int value;
+    char *name;
     char *asString;
 } Token;
 
@@ -48,6 +50,7 @@ Vector *tokenize(char *p);
 
 enum {
     ND_NUM = 256,
+    ND_IDENT,
     ND_RETURN,
     ND_COMP_STMT,
     ND_EXPR_STMT,
@@ -58,6 +61,7 @@ typedef struct Node {
     struct Node *left;
     struct Node *right;
     int value;
+    char *name;
     struct Node *expr;
     Vector *stmts;
 } Node;
@@ -68,6 +72,9 @@ enum {
     IR_IMM,
     IR_MOV,
     IR_RETURN,
+    IR_ALLOCA,
+    IR_LOAD,
+    IR_STORE,
     IR_KILL,
     IR_NOP,
 };

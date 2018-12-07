@@ -21,7 +21,7 @@ static Vector *scan(char *p)
             continue;
         }
 
-        if (strchr("+-*/;", *p)) {
+        if (strchr("+-*/;=", *p)) {
             add_token(v, *p, p);
             p++;
             continue;
@@ -36,10 +36,11 @@ static Vector *scan(char *p)
             char *name = strndup(p, len);
             int type = (intptr_t)map_get(keywords, name);
             if (!type) {
-                error("unknown identifier: %s", name);
+                type = TK_IDENT;
             }
 
-            add_token(v, type, p);
+            Token *t = add_token(v, type, p);
+            t->name = name;
             p += len;
             continue;
         }
