@@ -7,6 +7,11 @@ int main(int argc, char **argv)
         return 1;
     }
 
+    if (!strcmp(argv[1], "-test")) {
+        util_test();
+        return 0;
+    }
+
     Vector *tokens = tokenize(argv[1]);
     Node *node = parse(tokens);
 
