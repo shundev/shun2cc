@@ -1,5 +1,7 @@
 #include "shun2cc.h"
 
+Map *keywords;
+
 static Token *add_token(Vector *v, int type, char *asString)
 {
     Token *t = malloc(sizeof(Token));
@@ -9,7 +11,7 @@ static Token *add_token(Vector *v, int type, char *asString)
     return t;
 }
 
-Vector *tokenize(char *p)
+static Vector *scan(char *p)
 {
     Vector *v = new_vec();
 
@@ -20,10 +22,28 @@ Vector *tokenize(char *p)
             continue;
         }
 
-        if (strchr("+-*/", *p)) {
+        if (strchr("+-*/;", *p)) {
             add_token(v, *p, p);
             i++;
             p++;
+            continue;
+        }
+
+        if (isalpha(*p) || *p == '_') {
+            int len = 1;
+            while (isalpha(p[len]) || isdigit(p[len]) || p[len] == '_') {
+                len++;
+            }
+
+            char *name = strndup(p, len);
+            int type = (intptr_t)map_get(keywords, name);
+            if (!type) {
+                error("unknown identifier: %s", name);
+            }
+
+            add_token(v, type, p);
+            i++;
+            p += len;
             continue;
         }
 
@@ -34,10 +54,18 @@ Vector *tokenize(char *p)
             continue;
         }
 
-        fprintf(stderr, "Cannot tokenize: %s", p);
-        exit(1);
+        error("Cannot tokenize: %s", p);
     }
 
     add_token(v, TK_EOF, p);
     return v;
+}
+
+
+Vector *tokenize(char *p)
+{
+    keywords = new_map();
+    map_put(keywords, "return", (void *)TK_RETURN);
+
+    return scan(p);
 }

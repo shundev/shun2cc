@@ -3,20 +3,26 @@
 static Vector *tokens;
 static int pos;
 
+static void expect(int type)
+{
+    Token *t = tokens->data[pos];
+    if (t->type != type) {
+        error(
+            "%c (%d) expected, but got %c (%d)",
+            type, type,
+            t->type, t->type
+        );
+    }
+
+    pos++;
+}
+
 static Node *new_node(int op, Node *left, Node *right)
 {
     Node *node = malloc(sizeof(Node));
     node->type = op;
     node->left = left;
     node->right = right;
-    return node;
-}
-
-static Node *new_node_num(int value)
-{
-    Node *node = malloc(sizeof(Node));
-    node->type = ND_NUM;
-    node->value = value;
     return node;
 }
 
@@ -29,7 +35,11 @@ static Node *number()
     }
 
     pos++;
-    return new_node_num(t->value);
+
+    Node *node = malloc(sizeof(Node));
+    node->type = ND_NUM;
+    node->value = t->value;
+    return node;
 }
 
 
@@ -55,7 +65,6 @@ static Node *expr()
     for (;;) {
         Token *t = tokens->data[pos];
         int op = t->type;
-
         if (op != '+' && op != '-') {
             return left;
         }
@@ -66,16 +75,38 @@ static Node *expr()
 }
 
 
+static Node *stmt()
+{
+    Node *node = malloc(sizeof(Node));
+    node->type = ND_COMP_STMT;
+    node->stmts = new_vec();
+
+    for (;;) {
+        Token *t = tokens->data[pos];
+        if (t->type == TK_EOF) {
+            return node;
+        }
+
+        Node *e = malloc(sizeof(Node));
+
+        if (t->type == TK_RETURN) {
+            pos++;
+            e->type = ND_RETURN;
+            e->expr = expr();
+        } else {
+            e->type = ND_EXPR_STMT;
+            e->expr = expr();
+        }
+
+        vec_push(node->stmts, e);
+        expect(';');
+    }
+}
+
+
 Node *parse(Vector *v) {
     tokens = v;
     pos = 0;
 
-    Node *node = expr();
-
-    Token *t = tokens->data[pos];
-    if (t->type != TK_EOF) {
-        error("stray token: %s", t->asString);
-    }
-
-    return node;
+    return stmt();
 }
