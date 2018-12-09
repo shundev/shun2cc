@@ -83,6 +83,8 @@ typedef struct {
     int op;
     int left;
     int right;
+    bool has_imm;
+    int imm;
 } IR;
 
 Vector *gen_ir(Node *node);

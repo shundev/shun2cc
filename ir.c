@@ -10,10 +10,23 @@ static int bpoff;
 
 static IR *add(int op, int left, int right)
 {
-    IR *ir = malloc(sizeof(IR));
+    // 値を初期化しないとhas_immが非0になる可能性がある
+    IR *ir = calloc(1, sizeof(IR));
     ir->op = op;
     ir->left = left;
     ir->right = right;
+    vec_push(code, ir);
+    return ir;
+}
+
+
+static IR *add_imm(int op, int left, int imm)
+{
+    IR *ir = calloc(1, sizeof(IR));
+    ir->op = op;
+    ir->left = left;
+    ir->has_imm = true;
+    ir->imm = imm;
     vec_push(code, ir);
     return ir;
 }
@@ -30,15 +43,11 @@ static int gen_lval(Node *node)
         bpoff += 8;
     }
 
-    int r1 = regno++;
+    int r = regno++;
     int off = (intptr_t)map_get(vars, node->name);
-    add(IR_MOV, r1, basereg);
-
-    int r2 = regno++;
-    add(IR_IMM, r2, off);
-    add('+', r1, r2);
-    add(IR_KILL, r2, -1);
-    return r1;
+    add(IR_MOV, r, basereg);
+    add_imm('+', r, off);
+    return r;
 }
 
 static int gen_expr(Node *node)

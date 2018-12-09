@@ -53,7 +53,11 @@ void alloc_regs(Vector *irv)
             case '*':
             case '/':
                 ir->left = alloc(ir->left);
-                ir->right = alloc(ir->right);
+
+                // 即値の場合はレジスタ不要
+                if (!ir->has_imm) {
+                    ir->right = alloc(ir->right);
+                }
                 break;
             case IR_KILL:
                 kill(reg_map[ir->left]);
