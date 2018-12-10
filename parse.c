@@ -3,6 +3,8 @@
 static Vector *tokens;
 static int pos;
 
+static Node *assign();
+
 static void expect(int type)
 {
     Token *t = tokens->data[pos];
@@ -39,8 +41,15 @@ static Node *new_node(int op, Node *left, Node *right)
 
 static Node *term()
 {
-    Node *node = malloc(sizeof(Node));
     Token *t = tokens->data[pos++];
+
+    if (t->type == '(') {
+        Node *node = assign();
+        expect(')');
+        return node;
+    }
+
+    Node *node = malloc(sizeof(Node));
 
     if (t->type == TK_NUM) {
         node->type = ND_NUM;
