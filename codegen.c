@@ -23,6 +23,9 @@ void gen_x86(Vector *irv)
             case IR_IMM:
                 printf("  MOV %s, %d\n", regs[ir->left], ir->right);
                 break;
+            case IR_ADD_IMM:
+                printf("  ADD %s, %d\n", regs[ir->left], ir->right);
+                break;
             case IR_MOV:
                 printf("  MOV %s, %s\n", regs[ir->left], regs[ir->right]);
                 break;
@@ -43,11 +46,7 @@ void gen_x86(Vector *irv)
                 printf("  MOV [%s], %s\n", regs[ir->left], regs[ir->right]);
                 break;
             case '+':
-                if (ir->has_imm) {
-                    printf("  ADD %s, %d\n", regs[ir->left], ir->imm);
-                } else {
-                    printf("  ADD %s, %s\n", regs[ir->left], regs[ir->right]);
-                }
+                printf("  ADD %s, %s\n", regs[ir->left], regs[ir->right]);
                 break;
             case '-':
                 printf("  SUB %s, %s\n", regs[ir->left], regs[ir->right]);

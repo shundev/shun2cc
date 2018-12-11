@@ -41,6 +41,7 @@ void alloc_regs(Vector *irv)
 
         switch (ir->op) {
             case IR_IMM:
+            case IR_ADD_IMM:
             case IR_ALLOCA:
             case IR_RETURN:
                 ir->left = alloc(ir->left);
@@ -53,11 +54,7 @@ void alloc_regs(Vector *irv)
             case '*':
             case '/':
                 ir->left = alloc(ir->left);
-
-                // 即値の場合はレジスタ不要
-                if (!ir->has_imm) {
-                    ir->right = alloc(ir->right);
-                }
+                ir->right = alloc(ir->right);
                 break;
             case IR_KILL:
                 kill(reg_map[ir->left]);
