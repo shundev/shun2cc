@@ -31,6 +31,7 @@ void *map_get(Map *map, char *key);
 bool map_exists(Map *map, char *key);
 
 void util_test();
+void dump_ir(Vector *);
 
 enum {
     TK_NUM = 256,

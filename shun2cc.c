@@ -12,6 +12,14 @@ int main(int argc, char **argv)
         return 0;
     }
 
+    if (!strcmp(argv[1], "-ir")) {
+        Vector *tokens = tokenize(argv[2]);
+        Node *node = parse(tokens);
+        Vector *irv = gen_ir(node);
+        dump_ir(irv);
+        return 0;
+    }
+
     Vector *tokens = tokenize(argv[1]);
     Node *node = parse(tokens);
 

@@ -111,3 +111,56 @@ Vector *gen_ir(Node *node)
     add(IR_KILL, basereg, -1);
     return code;
 }
+
+void dump_ir(Vector *irv)
+{
+    for (int i=0; i<irv->len; i++) {
+        IR *ir = irv->data[i];
+
+        switch (ir->op) {
+            case IR_IMM:
+                printf("IMM\t");
+                break;
+            case IR_ADD_IMM:
+                printf("ADD_IMM\t");
+                break;
+            case IR_ALLOCA:
+                printf("ALLOCA\t");
+                break;
+            case IR_RETURN:
+                printf("RETURN\t");
+                break;
+            case IR_MOV:
+                printf("MOV\t");
+                break;
+            case IR_LOAD:
+                printf("LOAD\t");
+                break;
+            case IR_STORE:
+                printf("STORE\t");
+                break;
+            case '+':
+                printf("+\t");
+                break;
+            case '-':
+                printf("-\t");
+                break;
+            case '*':
+                printf("*\t");
+                break;
+            case '/':
+                printf("/\t");
+                break;
+            case IR_KILL:
+                printf("KILL\t");
+                break;
+            case IR_NOP:
+                printf("NOP\t");
+                break;
+            default:
+                assert(0 && "unknown operator");
+        }
+
+        printf(" left = %d\tright = %d\n", ir->left, ir->right);
+    }
+}
