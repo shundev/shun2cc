@@ -113,6 +113,33 @@ static Node *assign()
 static Node *stmt()
 {
     Node *node = malloc(sizeof(Node));
+    Token *t = tokens->data[pos];
+
+    switch (t->type) {
+        case TK_IF:
+            pos++;
+            node->type = ND_IF;
+            expect('(');
+            node->cond = assign();
+            expect(')');
+            node->then = stmt();
+            return node;
+        case TK_RETURN:
+            pos++;
+            node->type = ND_RETURN;
+            node->expr = assign();
+            expect(';');
+            return node;
+        default:
+            node->type = ND_EXPR_STMT;
+            node->expr = assign();
+            expect(';');
+            return node;
+    }
+}
+
+static Node *compound_stmt() {
+    Node *node = malloc(sizeof(Node));
     node->type = ND_COMP_STMT;
     node->stmts = new_vec();
 
@@ -122,19 +149,7 @@ static Node *stmt()
             return node;
         }
 
-        Node *e = malloc(sizeof(Node));
-
-        if (t->type == TK_RETURN) {
-            pos++;
-            e->type = ND_RETURN;
-            e->expr = assign();
-        } else {
-            e->type = ND_EXPR_STMT;
-            e->expr = assign();
-        }
-
-        vec_push(node->stmts, e);
-        expect(';');
+        vec_push(node->stmts, stmt());
     }
 }
 
@@ -143,5 +158,5 @@ Node *parse(Vector *v) {
     tokens = v;
     pos = 0;
 
-    return stmt();
+    return compound_stmt();
 }

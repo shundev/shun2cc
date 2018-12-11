@@ -1,17 +1,9 @@
 #include "shun2cc.h"
 
-static char *gen_label()
-{
-    static int n;
-    char buf[10];
-    sprintf(buf, ".L%d", n++);
-    return strdup(buf);
-}
-
 
 void gen_x86(Vector *irv)
 {
-    char *ret = gen_label();
+    char *ret = ".Lend";
 
     printf("  PUSH rbp\n");
     printf("  MOV rbp, rsp\n");
@@ -32,6 +24,13 @@ void gen_x86(Vector *irv)
             case IR_RETURN:
                 printf("  MOV rax, %s\n", regs[ir->left]);
                 printf("  JMP %s\n", ret);
+                break;
+            case IR_LABEL:
+                printf(".L%d:\n", ir->left);
+                break;
+            case IR_UNLESS:
+                printf("  CMP %s, 0\n", regs[ir->left]);
+                printf("  JE .L%d\n", ir->right);
                 break;
             case IR_ALLOCA:
                 if (ir->right) {

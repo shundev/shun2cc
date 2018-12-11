@@ -38,30 +38,23 @@ void alloc_regs(Vector *irv)
 
     for (int i=0; i<irv->len; i++) {
         IR *ir = irv->data[i];
+        IRInfo *info = get_irinfo(ir);
 
-        switch (ir->op) {
-            case IR_IMM:
-            case IR_ADD_IMM:
-            case IR_ALLOCA:
-            case IR_RETURN:
+        switch (info->type) {
+            case IR_TY_REG:
+            case IR_TY_REG_IMM:
+            case IR_TY_REG_LABEL:
                 ir->left = alloc(ir->left);
                 break;
-            case IR_MOV:
-            case IR_LOAD:
-            case IR_STORE:
-            case '+':
-            case '-':
-            case '*':
-            case '/':
+            case IR_TY_REG_REG:
                 ir->left = alloc(ir->left);
                 ir->right = alloc(ir->right);
                 break;
-            case IR_KILL:
-                kill(reg_map[ir->left]);
-                ir->op = IR_NOP;
-                break;
-            default:
-                assert(0 && "unknown operator");
+        }
+
+        if (ir->op == IR_KILL) {
+            kill(ir->left);
+            ir->op = IR_NOP;
         }
     }
 }
