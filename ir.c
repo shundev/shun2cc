@@ -44,7 +44,7 @@ static char *tostr(IR *ir) {
     IRInfo *info = get_irinfo(ir);
     switch (info->type) {
         case IR_TY_LABEL:
-            return format("%s:\n", ir->left);
+            return format(".L%d:\n", ir->left);
         case IR_TY_REG:
             return format("%s r%d\n", info->name, ir->left);
         case IR_TY_REG_REG:
@@ -52,7 +52,7 @@ static char *tostr(IR *ir) {
         case IR_TY_REG_IMM:
             return format("%s r%d, %d\n", info->name, ir->left, ir->right);
         case IR_TY_REG_LABEL:
-            return format("%s r%d, .L%s\n", info->name, ir->left, ir->right);
+            return format("%s r%d, .L%d\n", info->name, ir->left, ir->right);
         default:
             assert(info->type == IR_TY_NOARG);
             return format("%s\n", info->name);
