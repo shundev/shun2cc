@@ -32,7 +32,7 @@ static bool consume(int type)
 
 static Node *new_node(int op, Node *left, Node *right)
 {
-    Node *node = malloc(sizeof(Node));
+    Node *node = calloc(1, sizeof(Node));
     node->type = op;
     node->left = left;
     node->right = right;
@@ -49,7 +49,7 @@ static Node *term()
         return node;
     }
 
-    Node *node = malloc(sizeof(Node));
+    Node *node = calloc(1, sizeof(Node));
 
     if (t->type == TK_NUM) {
         node->type = ND_NUM;
@@ -112,7 +112,7 @@ static Node *assign()
 
 static Node *stmt()
 {
-    Node *node = malloc(sizeof(Node));
+    Node *node = calloc(1, sizeof(Node));
     Token *t = tokens->data[pos];
 
     switch (t->type) {
@@ -123,6 +123,11 @@ static Node *stmt()
             node->cond = assign();
             expect(')');
             node->then = stmt();
+
+            if (consume(TK_ELSE)) {
+                node->els = stmt();
+            }
+
             return node;
         case TK_RETURN:
             pos++;
@@ -139,7 +144,7 @@ static Node *stmt()
 }
 
 static Node *compound_stmt() {
-    Node *node = malloc(sizeof(Node));
+    Node *node = calloc(1, sizeof(Node));
     node->type = ND_COMP_STMT;
     node->stmts = new_vec();
 
