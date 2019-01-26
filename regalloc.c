@@ -50,6 +50,12 @@ void alloc_regs(Vector *irv)
                 ir->left = alloc(ir->left);
                 ir->right = alloc(ir->right);
                 break;
+            case IR_TY_CALL:
+                ir->left = alloc(ir->left);
+                for (int i = 0; i < ir->nargs; i++) {
+                    ir->args[i] = alloc(ir->args[i]);
+                }
+                break;
         }
 
         if (ir->op == IR_KILL) {

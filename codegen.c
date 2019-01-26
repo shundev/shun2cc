@@ -25,6 +25,32 @@ void gen_x86(Vector *irv)
                 printf("  MOV rax, %s\n", regs[ir->left]);
                 printf("  JMP %s\n", ret);
                 break;
+            case IR_CALL: {
+                printf("  PUSH rbx\n");
+                printf("  PUSH rbp\n");
+                printf("  PUSH rsp\n");
+                printf("  PUSH r12\n");
+                printf("  PUSH r13\n");
+                printf("  PUSH r14\n");
+                printf("  PUSH r15\n");
+
+                char *arg[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
+                for (int i=0; i<ir->nargs; i++) {
+                    printf("  MOV %s, %s\n", arg[i], regs[ir->args[i]]);
+                }
+
+                printf("  MOV rax, 0\n");
+                printf("  CALL %s\n", ir->name);
+                printf("  MOV %s, rax\n", regs[ir->left]);
+
+                printf("  PUSH r15\n");
+                printf("  PUSH r14\n");
+                printf("  PUSH r13\n");
+                printf("  PUSH r12\n");
+                printf("  PUSH rsp\n");
+                printf("  PUSH rbp\n");
+                printf("  PUSH rbx\n");
+            }
             case IR_LABEL:
                 printf(".L%d:\n", ir->left);
                 break;
