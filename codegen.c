@@ -40,7 +40,7 @@ void gen_x86(Vector *irv)
                 }
 
                 printf("  MOV rax, 0\n");
-                printf("  CALL %s\n", ir->name);
+                printf("  CALL _%s\n", ir->name);
                 printf("  MOV %s, rax\n", regs[ir->left]);
 
                 printf("  PUSH r15\n");
