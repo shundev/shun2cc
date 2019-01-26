@@ -23,4 +23,4 @@ Trace execution while running with VSCode + LLDB
 4. Open a file & Set breakpoints
 5. Launch debugger (F5)
 
-If you want to see the whole compile process, set a breakpoint on the head of `main` function.
+If you want to see the whole compile process, set a breakpoint on the first line inside `main` function.
