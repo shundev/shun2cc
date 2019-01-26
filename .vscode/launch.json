@@ -10,7 +10,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/shun2cc",
-            "args": ["return _plus(2, 3);"],
+            "args": ["return plus(2, 3);"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
