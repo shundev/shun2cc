@@ -1,15 +1,22 @@
 #include "shun2cc.h"
 
+static int label;
 
-void gen_x86(Vector *irv)
+void gen(Function *fn)
 {
-    char *ret = ".Lend";
+    char *ret = format(".Lend%d", label++);
 
+    printf(".global %s\n", fn->name);
+    printf("%s:\n", fn->name);
+    printf("  PUSH r12\n");
+    printf("  PUSH r13\n");
+    printf("  PUSH r14\n");
+    printf("  PUSH r15\n");
     printf("  PUSH rbp\n");
     printf("  MOV rbp, rsp\n");
 
-    for (int i=0; i<irv->len; i++) {
-        IR *ir = irv->data[i];
+    for (int i=0; i<fn->ir->len; i++) {
+        IR *ir = fn->ir->data[i];
 
         switch (ir->op) {
             case IR_IMM:
@@ -26,30 +33,20 @@ void gen_x86(Vector *irv)
                 printf("  JMP %s\n", ret);
                 break;
             case IR_CALL: {
-                printf("  PUSH rbx\n");
-                printf("  PUSH rbp\n");
-                printf("  PUSH rsp\n");
-                printf("  PUSH r12\n");
-                printf("  PUSH r13\n");
-                printf("  PUSH r14\n");
-                printf("  PUSH r15\n");
-
                 char *arg[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
                 for (int i=0; i<ir->nargs; i++) {
                     printf("  MOV %s, %s\n", arg[i], regs[ir->args[i]]);
                 }
 
+                printf("  PUSH r10\n");
+                printf("  PUSH r11\n");
                 printf("  MOV rax, 0\n");
                 printf("  CALL _%s\n", ir->name);
+                printf("  POP r11\n");
+                printf("  POP r10\n");
+                
                 printf("  MOV %s, rax\n", regs[ir->left]);
-
-                printf("  PUSH r15\n");
-                printf("  PUSH r14\n");
-                printf("  PUSH r13\n");
-                printf("  PUSH r12\n");
-                printf("  PUSH rsp\n");
-                printf("  PUSH rbp\n");
-                printf("  PUSH rbx\n");
+                break;
             }
             case IR_LABEL:
                 printf(".L%d:\n", ir->left);
@@ -101,5 +98,18 @@ void gen_x86(Vector *irv)
     printf("%s:\n", ret);
     printf("  MOV rsp, rbp\n");
     printf("  POP rbp\n");
+    printf("  POP r15\n");
+    printf("  POP r14\n");
+    printf("  POP r13\n");
+    printf("  POP r12\n");
     printf("  RET\n");
+}
+
+void gen_x86(Vector *fns)
+{
+    printf(".intel_syntax noprefix\n");
+
+    for (int i=0; i<fns->len; i++) {
+        gen(fns->data[i]);
+    }
 }

@@ -66,6 +66,7 @@ enum {
     ND_IDENT,
     ND_IF,
     ND_CALL,
+    ND_FUNC,
     ND_RETURN,
     ND_COMP_STMT,
     ND_EXPR_STMT,
@@ -84,10 +85,11 @@ typedef struct Node {
     struct Node *cond;
     struct Node *then;
     struct Node *els;
+    struct Node *body;
     Vector *args;
 } Node;
 
-Node *parse(Vector *tokens);
+Vector *parse(Vector *tokens);
 
 enum {
     IR_IMM = 256,
@@ -132,16 +134,22 @@ typedef struct {
     int type;
 } IRInfo;
 
+typedef struct {
+    char *name;
+    int args[6];
+    Vector *ir;
+} Function;
+
 extern IRInfo irinfo[];
 IRInfo *get_irinfo(IR *ir);
 
-Vector *gen_ir(Node *node);
+Vector *gen_ir(Vector *nodes);
 void dump_ir(Vector *);
 
 extern char *regs[];
 
 void alloc_regs(Vector *irv);
 
-void gen_x86(Vector *irv);
+void gen_x86(Vector *fns);
 
 char **argv;

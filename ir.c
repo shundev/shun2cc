@@ -56,7 +56,7 @@ static char *tostr(IR *ir) {
             return format("%s r%d, .L%d\n", info->name, ir->left, ir->right);
         case IR_TY_CALL: {
             StringBuilder *sb = new_sb();
-            sb_append(sb, format("r%d = %s(", ir->name, ir->left));
+            sb_append(sb, format("r%d = %s(", ir->left, ir->name));
             for (int i = 0; i < ir->nargs; i++) {
                 sb_append(sb, format(", r%d", ir->args));
             }
@@ -72,7 +72,11 @@ static char *tostr(IR *ir) {
 
 void dump_ir(Vector *irv) {
     for (int i=0; i<irv->len; i++) {
-        fprintf(stderr, "%s", tostr(irv->data[i]));
+        Function *fn = irv->data[i];
+        fprintf(stderr, "%s():\n", fn->name);
+        for (int j=0; j<fn->ir->len; j++) {
+            fprintf(stderr, "  %s", tostr(fn->ir->data[j]));
+        }
     }
 }
 
@@ -204,19 +208,30 @@ static void gen_stmt(Node *node)
     error("unknown node: %d", node->type);
 }
 
-Vector *gen_ir(Node *node)
+Vector *gen_ir(Vector *nodes)
 {
-    assert(node->type == ND_COMP_STMT);
-    code = new_vec();
-    regno = 1;
-    basereg = 0;
-    vars = new_map();
-    bpoff = 0;
-    label = 0;
+    Vector *v = new_vec();
 
-    IR *alloca = add(IR_ALLOCA, basereg, -1);
-    gen_stmt(node);
-    alloca->right =bpoff;
-    add(IR_KILL, basereg, -1);
-    return code;
+    for (int i=0; i<nodes->len; i++) {
+        Node *node = nodes->data[i];
+        assert(node->type == ND_FUNC);
+
+        code = new_vec();
+        regno = 1;
+        basereg = 0;
+        vars = new_map();
+        bpoff = 0;
+        label = 0;
+        IR *alloca = add(IR_ALLOCA, basereg, -1);
+        gen_stmt(node->body);
+        alloca->right = bpoff;
+        add(IR_KILL, basereg, -1);
+
+        Function *fn = malloc(sizeof(Function));
+        fn->name = node->name;
+        fn->ir = code;
+        vec_push(v, fn);
+    }
+
+    return v;
 }
